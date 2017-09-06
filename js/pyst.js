@@ -1,4 +1,4 @@
-var loremIpsum = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut sit amet arcu convallis, feugiat ligula ut, blandit ante. Sed ornare quis dolor eget venenatis. Nam quis lobortis justo. Suspendisse potenti. In ultrices, leo in mattis aliquam, ligula risus vestibulum metus, et congue velit ipsum vel neque. Aliquam volutpat sodales ipsum, eu lacinia est pretium quis. Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Maecenas lacinia, magna vitae luctus pellentesque, metus est venenatis lacus, at consectetur lorem ante quis enim. Quisque vel nulla eget purus blandit rutrum quis eu ipsum. Maecenas aliquam ac leo vitae efficitur. Nulla sodales nunc id risus egestas, vel auctor nibh ultricies. Integer auctor, odio ut suscipit pharetra, nulla tortor congue dolor, eget ultrices lectus urna et enim. Aenean viverra sapien cursus suscipit mollis. Fusce faucibus eros at eros egestas placerat.";
+var loremIpsum = "";
 
 function capitalize(string) {
     return string.charAt(0).toUpperCase() + string.slice(1);
@@ -32,7 +32,6 @@ var pystEngine = {
 			});
 			return true;
 		} else if (command.command == "ui.choice.request") {
-			// Pop choice box
 			var choiceString = "What do you do?\n";
 			for (i = 0; i < this.choices.length; i++) {
 				var choice = this.choices[i];
@@ -40,30 +39,56 @@ var pystEngine = {
 			}
 			pystPane.pixi.components.textbox.text.text = choiceString;
 			return false;
-		} else if (command.command == "ui.scene.move") {
+		} else if (command.command == "ui.scene.enter") {
 			var location = command.args[0];
+			var transition = command.args[1];
+			var speed = command.args[2];
+
+			pystPane.pixi.components.scene.background.visible = false;
 			pystPane.pixi.components.scene.background.texture = PIXI.loader.resources["scenes." + location + ".default"].texture;
 			pystPane.pixi.components.scene.background.width = pystPane.pixi.renderer.width;
 			pystPane.pixi.components.scene.background.height = pystPane.pixi.renderer.height;
+
+			if (transition == "") {
+				pystPane.pixi.components.scene.background.visible = true;
+				return true;
+			}
+
+			pystPane.pixi.transitions.background.push({
+				sprite1: pystPane.pixi.components.scene.background,
+				sprite2: undefined,
+				type: transition,
+				speed: speed,
+				started: false
+			});
+
 			return true;
-		} else if (command.command == "ui.scene.add") {
-			var sprite = pystPane.pixi.components.actors[command.args[1]];
-			var layout = pystEngine.shit.layout.actors[command.args[1]];
-			var actor  = pystEngine.shit.assets.actors[command.args[0]];
-			sprite.visible = false;
-			pystPane.pixi.components.actorMapping[command.args[0]] = command.args[1];
-			return true;
-		} else if (command.command == "ui.scene.remove") {
-			var actorPos = pystPane.pixi.components.actorMapping[command.args[0]];
-			var sprite = pystPane.pixi.components.actors[actorPos];
-			sprite.visible = false;
-			pystPane.pixi.components.actorMapping[command.args[0]] = undefined;
+		} else if (command.command == "ui.scene.exit") {
+			var transition = command.args[0];
+			var speed = command.args[1];
+			
+			if (transition == "") {
+				pystPane.pixi.components.scene.background.visible = false;
+				return true;
+			}
+
+			pystPane.pixi.transitions.background.push({
+				sprite1: pystPane.pixi.components.scene.background,
+				sprite2: undefined,
+				type: transition,
+				speed: speed,
+				started: false
+			});
+
 			return true;
 		} else if (command.command == "ui.actor.change") {
 			var actor = command.args[0] + "." + command.args[1];
 			var actorPos = pystPane.pixi.components.actorMapping[command.args[0]];
 			var sprite = pystPane.pixi.components.actors[actorPos];
 			var layout = pystEngine.shit.layout.actors[actorPos];
+			var transition1 = command.args[2];
+			var transition2 = command.args[3];
+			var speed = command.args[4];
 			
 			sprite.texture = PIXI.loader.resources["actors." + actor].texture;
 			sprite.visible = true;
@@ -74,8 +99,74 @@ var pystEngine = {
 			sprite.x = pos.x;
 			sprite.y = pos.y;
 
+			if (transition1 == "" || transaction2 == "") {
+				sprite.visible = true;
+				return true;
+			}
+
+			pystPane.pixi.transitions.actors[actorPos].push({
+				sprite1: sprite,
+				sprite2: undefined,
+				type: transition2,
+				speed: speed,
+				started: false
+			});
+
 			return true;
-		}else {
+		} else if (command.command == "ui.actor.enter") {
+			var actor = command.args[0] + "." + command.args[1];
+			var sprite = pystPane.pixi.components.actors[command.args[2]];
+			var layout = this.shit.layout.actors[command.args[2]];
+			var transition = command.args[3];
+			var speed = command.args[4];
+			
+			sprite.texture = PIXI.loader.resources["actors." + actor].texture;
+			sprite.visible = false;
+			sprite.scale.x = layout.scale;
+			sprite.scale.y = layout.scale;
+			sprite.alpha = 0.0;
+
+			var pos = calculatePosition(layout, pystPane.pixi.renderer, sprite);
+			sprite.x = pos.x;
+			sprite.y = pos.y;
+
+			pystPane.pixi.components.actorMapping[command.args[0]] = command.args[2];
+
+			if (transition == "") {
+				sprite.visible = true;
+				return true;
+			}
+
+			pystPane.pixi.transitions.actors[command.args[2]].push({
+				sprite1: sprite,
+				sprite2: undefined,
+				type: transition,
+				speed: speed,
+				started: false
+			});
+
+			return true;
+		} else if (command.command == "ui.actor.exit") {
+			var actorPos = pystPane.pixi.components.actorMapping[command.args[0]];
+			var sprite = pystPane.pixi.components.actors[actorPos];
+			var transition = command.args[1];
+			var speed = command.args[2];
+
+			if (transition == "") {
+				sprite.visible = false;
+				return true;
+			}
+
+			pystPane.pixi.transitions.actors[actorPos].push({
+				sprite1: sprite,
+				sprite2: undefined,
+				type: transition,
+				speed: speed,
+				started: false
+			});
+
+			return true;
+		} else {
 			return true;
 		}
 	}
@@ -85,6 +176,11 @@ var pystPane = {
 	pixi: {
 		stage: {},
 		renderer: {},
+		transitions: {
+			background: [],
+			actors: {
+			}
+		},
 		components: {
 			layers: {
 				foreground: {},
@@ -261,36 +357,21 @@ function setup() {
 	// Configure keyboard listeners
 	var enter = keyboard(13);
 
-	// On enter press, do this
-	enter.press = function () {
-		// If command queue still has commands, pull off another and run it.
-		if (pystEngine.engine.currentScene.commands && pystEngine.engine.currentScene.commands.length >= 1) {
-			pystEngine.executeAll();
-			return;
-		}
-
-		// If there is a next scene and no choice to be made, retrieve next scene.
-		if (pystEngine.engine.currentScene.nextSceneHref) {
-			$.get(pystEngine.engine.currentScene.nextSceneHref, function(data) {
-				pystEngine.engine.currentScene = data;
-				pystEngine.executeAll();
-			});
-			return;
-		}
-	}
+	// On button press or click, advance the queue
+	enter.press = onEnter;
+	document.addEventListener("click", onEnter, false);
 
 	// Listen for number keys for choices
 	window.addEventListener("keydown", function(event) {
 		if (event.keyCode > 48 && event.keyCode < 58) {
+			// Get choice
 			var choice = pystEngine.choices[(event.keyCode - 48) - 1];
+			pystEngine.engine.currentScene.nextSceneHref = pystEngine.engine.currentScene.choices[choice.nextScene];
+			pystPane.pixi.components.textbox.text.text = "You chose '" + choice.text + "'";
+
+			// Get href for choice
 			var href = pystEngine.engine.currentScene.choices[choice.nextScene];
 			pystEngine.choices = [];
-
-			// Get the next scene and execute the first command
-			$.get(href, function(data) {
-				pystEngine.engine.currentScene = data;
-				pystEngine.executeAll();
-			});
 		}
 	}, false);
 
@@ -304,13 +385,89 @@ function setup() {
 	renderLoop();
 }
 
+function onEnter() {
+	// If command queue still has commands, pull off another and run it.
+	if (pystEngine.engine.currentScene.commands && pystEngine.engine.currentScene.commands.length >= 1) {
+		pystEngine.executeAll();
+	}
+
+	// If there is a next scene and no choice to be made, retrieve next scene.
+	if (pystEngine.engine.currentScene.nextSceneHref) {
+		$.get(pystEngine.engine.currentScene.nextSceneHref, function(data) {
+			pystEngine.engine.currentScene = data;
+			pystEngine.executeAll();
+
+			if (!pystEngine.engine.currentScene.commands || pystEngine.engine.currentScene.commands.length < 1) {
+				onEnter();
+			}
+		});
+	}
+}
+
 // Render loop
 function renderLoop() {
 	// Loop this function at 60 frames per second
 	requestAnimationFrame(renderLoop);
 
+	// Handle transitions for background
+	if (pystPane.pixi.transitions.background.length >= 1) {
+		var transition = pystPane.pixi.transitions.background[0];
+		
+		// Handle transition
+		if (transitionLoop(transition)) {
+			pystPane.pixi.transitions.background.shift();
+		}
+	}
+
+	// Handle actor transitions
+	for (var key in pystPane.pixi.transitions.actors) {
+		var actorTransitions = pystPane.pixi.transitions.actors[key];
+
+		if (actorTransitions.length >= 1) {
+			var transition = actorTransitions[0];
+
+			// Handle transition
+			if (transitionLoop(transition)) {
+				actorTransitions.shift();
+			}
+		}
+	}
+
 	// Render the stage
 	pystPane.pixi.renderer.render(pystPane.pixi.stage)
+}
+
+function transitionLoop(transition) {
+	var increment = 0.1/transition.speed;
+
+	if (transition.type == "fadeIn") {			// Fade in
+		if (!transition.started) {
+			transition.sprite1.alpha = 0.0;
+			transition.sprite1.visible = true;
+			transition.started = true;
+		}
+
+		if (transition.sprite1.alpha + increment >= 1.0) {
+			transition.sprite1.alpha = 1.0;
+			return true;
+		} else {
+			transition.sprite1.alpha += increment;
+		}
+	} else if (transition.type = "fadeOut") {	// Fade out
+		if (!transition.started) {
+			transition.started = true;
+		}
+
+		if (transition.sprite1.alpha - increment <= 0.0) {
+			transition.sprite1.alpha = 0.0;
+			transition.sprite1.visible = false;
+			return true;
+		} else {
+			transition.sprite1.alpha -= increment;
+		}
+	}
+
+	return false;
 }
 
 $(function() {
@@ -342,6 +499,10 @@ $(function() {
 				pystEngine.shit = data;
 
 				var loader = PIXI.loader;
+
+				for (var key in pystEngine.shit.layout.actors) {
+					pystPane.pixi.transitions.actors[key] = [];
+				}
 
 				// Load actors
 				for (var actorKey in pystEngine.shit.assets.actors) {
