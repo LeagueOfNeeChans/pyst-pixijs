@@ -4,6 +4,26 @@ function capitalize(string) {
     return string.charAt(0).toUpperCase() + string.slice(1);
 }
 
+var asciiConversionMap = {
+	":heart:": 172,
+	":button_a:": 255,
+	":button_b:": 193,
+	":button_x:": 230,
+	":button_y:": 189
+}
+
+var buttonImages = [
+	255, 193, 230, 189
+]
+
+function convertString(string) {
+	for (key in asciiConversionMap) {
+		string = string.replace(new RegExp(key, 'g'), String.fromCharCode(asciiConversionMap[key]));
+	}
+
+	return string;
+}
+
 var pystEngine = {
 	engine: {},
 	choices: [],
@@ -20,10 +40,12 @@ var pystEngine = {
 	execute: function(command) {
 		console.log("COMMAND: " + command.command)
 		if (command.command == "ui.narrator.say") {
-			pystPane.pixi.components.textbox.text.text = command.args[1];
+			var text = convertString(command.args[1]);
+			pystPane.pixi.components.textbox.text.text = text;
 			return false;
 		} else if (command.command == "ui.actor.say") {
-			pystPane.pixi.components.textbox.text.text = capitalize(command.args[0]) + ": " + command.args[1];
+			var text = convertString(command.args[1]);
+			pystPane.pixi.components.textbox.text.text = capitalize(command.args[0]) + ": " + text;
 			return false;
 		} else if (command.command == "ui.choice.prompt") {
 			this.choices.push({
@@ -33,9 +55,9 @@ var pystEngine = {
 			return true;
 		} else if (command.command == "ui.choice.request") {
 			var choiceString = "What do you do?\n";
-			for (i = 0; i < this.choices.length; i++) {
+			for (i = 0; i < Math.min(this.choices.length, 4); i++) {
 				var choice = this.choices[i];
-				choiceString += "\t\t" + (i + 1) + ") " + choice.text + "\n";
+				choiceString += "\t\t" + String.fromCharCode(buttonImages[i]) + choice.text + "\n";
 			}
 			pystPane.pixi.components.textbox.text.text = choiceString;
 			return false;
@@ -307,12 +329,16 @@ function setup() {
 		);
 	textBox.scale.x = 2;
 	textBox.scale.y = 2;
-	var text = pystPane.pixi.components.textbox.text = new PIXI.Text(
-			"",
-			pystPane.pixi.textStyle(textBox.width - 30)
+	var text = pystPane.pixi.components.textbox.text = new PIXI.extras.BitmapText(
+			"FART",
+			{ 
+				font: '20px Marker', 
+				align: 'left'
+			}
 		);
 	text.x = 15;
 	text.y = 20;
+	text.maxWidth = textBox.width - 30;
 
 	// Create background layer
 	pystPane.pixi.components.scene.background = new PIXI.Sprite();
@@ -395,11 +421,13 @@ function onEnter() {
 	if (pystEngine.engine.currentScene.nextSceneHref) {
 		$.get(pystEngine.engine.currentScene.nextSceneHref, function(data) {
 			pystEngine.engine.currentScene = data;
-			pystEngine.executeAll();
 
 			if (!pystEngine.engine.currentScene.commands || pystEngine.engine.currentScene.commands.length < 1) {
 				onEnter();
+				return;
 			}
+
+			pystEngine.executeAll();
 		});
 	}
 }
@@ -503,6 +531,9 @@ $(function() {
 				for (var key in pystEngine.shit.layout.actors) {
 					pystPane.pixi.transitions.actors[key] = [];
 				}
+
+				// Load font
+				loader.add("fonts/marker_font.fnt", { xhrType: PIXI.loaders.Resource.XHR_RESPONSE_TYPE.DOCUMENT });
 
 				// Load actors
 				for (var actorKey in pystEngine.shit.assets.actors) {
