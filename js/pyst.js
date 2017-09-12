@@ -271,6 +271,9 @@ function keyboard(keyCode) {
 	return key;
 }
 
+function parsePosition(positionString) {
+}
+
 function calculatePosition(layout, container, sprite) {
 	var pos = {}
 
@@ -329,10 +332,16 @@ function setup() {
 		);
 	textBox.scale.x = 2;
 	textBox.scale.y = 2;
+
+	var fontXml = $.parseXML(atob(pystEngine.shit.assets.fonts["Marker"].xml));
+	var textBoxFont = pystEngine.shit.layout.textbox.font;
+	PIXI.extras.BitmapText.registerFont(
+		fontXml,
+		PIXI.loader.resources["fonts." + textBoxFont].texture);
 	var text = pystPane.pixi.components.textbox.text = new PIXI.extras.BitmapText(
-			"FART",
+			"",
 			{ 
-				font: '20px Marker', 
+				font: '25px ' + textBoxFont, 
 				align: 'left'
 			}
 		);
@@ -533,7 +542,15 @@ $(function() {
 				}
 
 				// Load font
-				loader.add("fonts/marker_font.fnt", { xhrType: PIXI.loaders.Resource.XHR_RESPONSE_TYPE.DOCUMENT });
+				//loader.add("fonts/marker_font.fnt", { xhrType: PIXI.loaders.Resource.XHR_RESPONSE_TYPE.DOCUMENT });
+
+				// Load fonts
+				for (var fontKey in pystEngine.shit.assets.fonts) {
+					var imageKey = "fonts." + fontKey;
+					var font = pystEngine.shit.assets.fonts[fontKey];
+					console.log("LOADING: " + imageKey + "(image/png)");
+					loader.add(imageKey, "data:image/png;base64," + font.image);
+				}
 
 				// Load actors
 				for (var actorKey in pystEngine.shit.assets.actors) {
