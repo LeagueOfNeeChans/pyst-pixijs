@@ -272,25 +272,60 @@ function keyboard(keyCode) {
 }
 
 function parsePosition(positionString) {
+	var regex = /(-*\d+)\s*(px|%)/;
+	var matches = regex.exec(positionString);
+
+	if (!matches || matches.length < 3) {
+		return {};
+	}
+
+	return {
+		value: matches[1],
+		units: matches[2]
+	}
 }
 
 function calculatePosition(layout, container, sprite) {
-	var pos = {}
+	var pos = {};
 
 	if (layout.left != undefined) {
-		pos.x = layout.left;
+		var m = parsePosition(layout.left);
+
+		if (m.units == "px") {
+			pos.x = m.value;
+		} else if (m.units == "%") {
+			
+		}
 	}
 
 	if (layout.top != undefined) {
-		pos.y = layout.top;
+		var m = parsePosition(layout.top);
+
+		if (m.units == "px") {
+			pos.y = m.value;
+		} else if (m.units == "%") {
+
+		}
 	}
 
 	if (layout.right != undefined) {
-		pos.x = container.width - layout.right - sprite.width;
+		var m = parsePosition(layout.right);
+
+		if (m.units == "px") {
+			pos.x = container.width - m.value - sprite.width;
+		} else if (m.units == "%") {
+			
+		}
 	}
 
 	if (layout.bottom != undefined) {
-		pos.y = container.height - layout.bottom - sprite.height;
+		var m = parsePosition(layout.right);
+
+		if (m.units == "px") {
+			pos.y = container.height - m.value - sprite.height;
+		} else if (m.units == "%") {
+			
+		}
 	}
 
 	if (layout.hAlign != undefined) {
