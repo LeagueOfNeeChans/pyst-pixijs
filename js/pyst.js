@@ -120,6 +120,8 @@ var pystEngine = {
 			var pos = calculatePosition(layout, pystPane.pixi.renderer, sprite);
 			sprite.x = pos.x;
 			sprite.y = pos.y;
+			sprite.width  = pos.width;
+			sprite.height = pos.height;
 
 			if (transition1 == "" || transaction2 == "") {
 				sprite.visible = true;
@@ -151,6 +153,8 @@ var pystEngine = {
 			var pos = calculatePosition(layout, pystPane.pixi.renderer, sprite);
 			sprite.x = pos.x;
 			sprite.y = pos.y;
+			sprite.width  = pos.width;
+			sprite.height = pos.height;
 
 			pystPane.pixi.components.actorMapping[command.args[0]] = command.args[2];
 
@@ -288,67 +292,100 @@ function parsePosition(positionString) {
 function calculatePosition(layout, container, sprite) {
 	var pos = {};
 
+	// Calculate size
+	if (layout.width && !layout.height) {
+		var w = parsePosition(layout.width);
+		if (w.units == "px") {
+			pos.width = w.value;
+		} else if (w.units == "%") {
+			var ratio = sprite.height/sprite.width;
+			pos.width = container.width * (w.value/100.0);
+			pos.height = ratio * pos.width;
+		}
+	} else if (layout.height && !layout.width) {
+		var h = parsePosition(layout.height);
+		if (h.units == "px") {
+			pos.height = h.value;
+		} else if (h.units == "%") {
+			var ratio = sprite.width/sprite.height;
+			pos.height = container.height * (h.value/100.0);
+			pos.width = ratio * pos.height;
+		}
+	} else {
+		var w = parsePosition(layout.width);
+		var h = parsePosition(layout.height);
+		if (h.units == "px") {
+			pos.height = h.value;
+		} else if (h.units == "%") {
+			pos.height = container.height * (h.value/100.0);
+		}
+
+		if (w.units == "px") {
+			pos.width = w.value;
+		} else if (w.units == "%") {
+			pos.width = container.width * (w.value/100.0);
+		}
+	}
+
+	// Calculate position
 	if (layout.left != undefined) {
 		var m = parsePosition(layout.left);
 
 		if (m.units == "px") {
 			pos.x = m.value;
 		} else if (m.units == "%") {
-			
+			pos.x = (m.value/100.0) * container.width;
 		}
 	}
-
 	if (layout.top != undefined) {
 		var m = parsePosition(layout.top);
 
 		if (m.units == "px") {
 			pos.y = m.value;
 		} else if (m.units == "%") {
-
+			pos.y = (m.value/100.0) * container.height;
 		}
 	}
-
 	if (layout.right != undefined) {
 		var m = parsePosition(layout.right);
 
 		if (m.units == "px") {
-			pos.x = container.width - m.value - sprite.width;
+			pos.x = container.width - m.value - pos.width;
 		} else if (m.units == "%") {
-			
+			var adjusted = container.width - m.value - pos.width;
+			pos.x = (adjusted/100) * container.width;
 		}
 	}
-
 	if (layout.bottom != undefined) {
-		var m = parsePosition(layout.right);
+		var m = parsePosition(layout.bottom);
 
 		if (m.units == "px") {
-			pos.y = container.height - m.value - sprite.height;
+			pos.y = container.height - m.value - pos.height;
 		} else if (m.units == "%") {
-			
+			var adjusted = container.height - m.value - pos.height;
+			pos.y = (adjusted/100) * container.height;
 		}
 	}
-
 	if (layout.hAlign != undefined) {
 		if (layout.hAlign == "center") {
-			pos.x = (container.width - sprite.width)/2;
+			pos.x = (container.width - pos.width)/2;
 		} else if (layout.hAlign == "right") {
-			pos.x = container.width - sprite.width;
+			pos.x = container.width - pos.width;
 		} else if (layout.hAlign == "left") {
 			pos.x = 0;
 		}
 	}
-
 	if (layout.vAlign != undefined) {
 		if (layout.vAlign == "middle") {
-			pos.y = (container.height - sprite.height)/2;
+			pos.y = (container.height - pos.height)/2;
 		} else if (layout.vAlign == "top") {
 			pos.y = 0;
 		} else if (layout.vAlign == "bottom") {
-			pos.y = container.height - sprite.height;
+			pos.y = container.height - pos.height;
 		}
 	}
 
-	return pos
+	return pos;
 }
 
 // Setup PixiJS
@@ -405,8 +442,13 @@ function setup() {
 	}
 
 	// Scale and place foreground
-	fg.x = (renderer.width - fg.width) / 2;
-	fg.y = renderer.height - fg.height - 10;
+	var pos = calculatePosition(pystEngine.shit.layout.textbox, renderer, fg);
+	fg.x = pos.x;
+	fg.y = pos.y;
+	fg.width = pos.width;
+	fg.height = pos.height;
+	//fg.x = (renderer.width - fg.width) / 2;
+	//fg.y = renderer.height - fg.height - 10;
 
 	// Add actor positions to stage
 	for (var actorKey in pystEngine.shit.layout.actors) {
